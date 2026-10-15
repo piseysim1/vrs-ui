@@ -1,0 +1,7 @@
+{
+  "/vrms": {
+    "target": "https://latest-dev.vbsxr.com",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
