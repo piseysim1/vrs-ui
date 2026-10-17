@@ -19,45 +19,68 @@ class AdminProvider extends GetConnect {
   }
 
   static const _page = {'pageIndex': '1', 'pageSize': '100'};
+
+  // ---------- vehicle ----------
   Future<Response> getVehicles() => get('/vrms/api/vehicle', query: _page);
   Future<Response> createVehicle(Map<String, dynamic> b) =>
       post('/vrms/api/vehicle', b);
   Future<Response> updateVehicle(int id, Map<String, dynamic> b) =>
       put('/vrms/api/vehicle/id', b, query: {'id': '$id'});
-  Future<Response> deleteVehicle(int id) async {
-    final attempts = <Future<Response> Function()>[
-      () => delete('/vrms/api/vehicle/id', query: {'id': '$id'}),
-      () => delete('/vrms/api/vehicle/$id'),
-      () => delete('/vrms/api/vehicle', query: {'id': '$id'}),
-    ];
-    Response? last;
-    for (var i = 0; i < attempts.length; i++) {
-      final r = await attempts[i]();
-      print('DELETE vehicle $id try=$i -> ${r.statusCode} ${r.bodyString}');
-      last = r;
-      if (r.statusCode == 200 || r.statusCode == 204) return r;
-    }
-    return last!;
-  }
+
+  Future<Response> deleteVehicle(int id) => _deleteById('vehicle', id);
+
+  // ---------- brand / model / location ----------
   Future<Response> getBrands() => get('/vrms/api/brand', query: _page);
   Future<Response> getModels() => get('/vrms/api/model', query: _page);
   Future<Response> createModel(Map<String, dynamic> b) =>
       post('/vrms/api/model', b);
   Future<Response> getLocations() => get('/vrms/api/location', query: _page);
+  Future<Response> getPaymentMethods() =>
+      get('/vrms/api/paymentmethod', query: _page);
 
-  // rate
+  // body guessed: username, password, fullName, phone, email
+  Future<Response> registerUser(Map<String, dynamic> b) =>
+      post('/vrms/api/auth/register', b);
+  // ---------- rate ----------
   Future<Response> getRates() => get('/vrms/api/rate', query: _page);
   Future<Response> createRate(Map<String, dynamic> b) =>
       post('/vrms/api/rate', b);
   Future<Response> updateRate(int id, Map<String, dynamic> b) =>
       put('/vrms/api/rate/id', b, query: {'id': '$id'});
+  // ---------- bookings ----------
+  Future<Response> getBookings() => get('/vrms/api/booking', query: _page);
+  Future<Response> createBooking(Map<String, dynamic> b) =>
+      post('/vrms/api/booking', b);
+  Future<Response> getBookingDetails() =>
+      get('/vrms/api/bookingdetail', query: _page);
+  Future<Response> createBookingDetail(Map<String, dynamic> b) =>
+      post('/vrms/api/bookingdetail', b);
+  Future<Response> getUsers() => get('/vrms/api/user', query: _page);
+
+  Future<Response> deleteBooking(int id) => _deleteById('booking', id);
+  Future<Response> deleteBookingDetail(int id) =>
+      _deleteById('bookingdetail', id);
+
+  /// Tries the two route shapes your Swagger may use.
+  Future<Response> _deleteById(String name, int id) async {
+    final attempts = <Future<Response> Function()>[
+      () => delete('/vrms/api/$name/id', query: {'id': '$id'}),
+      () => delete('/vrms/api/$name/$id'),
+    ];
+    Response? last;
+    for (final a in attempts) {
+      last = await a();
+      print('DELETE $name $id -> ${last.statusCode} ${last.bodyString}');
+      if (last.statusCode == 200 || last.statusCode == 204) return last;
+    }
+    return last!;
+  }
+
+  // ---------- lookup items ----------
+  /// There is no "list lookup items" endpoint, only GET /lookupitem/{id}.
   Future<List<OptionItem>> fetchLookupItems({int maxId = 30}) async {
     final responses = await Future.wait(
       List.generate(maxId, (i) => get('/vrms/api/lookupitem/${i + 1}')),
-    );
-
-    print(
-      'LOOKUP sample (id 4): ${responses[3].statusCode} ${responses[3].body}',
     );
 
     final out = <OptionItem>[];

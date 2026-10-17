@@ -14,7 +14,7 @@ class NavbarWidget extends StatelessWidget implements PreferredSizeWidget {
   void _openBrand(int id) {
     final route = '/brand/$id';
     if (Get.currentRoute.startsWith('/brand/')) {
-      Get.offNamed(route); // replace, so the back stack doesn't pile up
+      Get.offNamed(route);
     } else {
       Get.toNamed(route);
     }
@@ -85,7 +85,8 @@ class NavbarWidget extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
 
-              if (!isMobile) ...[
+              // Navigation pill bar: shows only 'Fleet' for Admin, standard menu for regular users
+              if (!isMobile || isAdmin) ...[
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.all(4),
@@ -96,26 +97,32 @@ class NavbarWidget extends StatelessWidget implements PreferredSizeWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _pill(
-                        'Home',
-                        selected: current == '/home',
-                        onTap: () => Get.offAllNamed('/home'),
-                      ),
-                      _brandsMenu(
-                        selected: current.startsWith('/brand'),
-                        isMobile: false,
-                      ),
-                      _pill('Bookings', onTap: () {}),
+                      if (!isAdmin) ...[
+                        _pill(
+                          'Home',
+                          selected: current == '/home',
+                          onTap: () => Get.offAllNamed('/home'),
+                        ),
+                        _brandsMenu(
+                          selected: current.startsWith('/brand'),
+                          isMobile: false,
+                        ),
+                        _pill('Bookings', onTap: () {}),
+                        _pill('About', onTap: () {}),
+                      ],
                       if (isAdmin)
-                        _pill('Fleet', onTap: () => Get.toNamed('/admin')),
-                      _pill('About', onTap: () {}),
+                        _pill(
+                          'Fleet',
+                          selected: current.startsWith('/admin'),
+                          onTap: () => Get.toNamed('/admin'),
+                        ),
                     ],
                   ),
                 ),
               ],
               const Spacer(),
 
-              if (isMobile)
+              if (isMobile && !isAdmin)
                 _brandsMenu(
                   selected: current.startsWith('/brand'),
                   isMobile: true,
@@ -153,10 +160,8 @@ class NavbarWidget extends StatelessWidget implements PreferredSizeWidget {
                   }
                 },
                 itemBuilder: (_) => [
-                  if (isMobile) ...[
+                  if (isMobile && !isAdmin) ...[
                     const PopupMenuItem(value: 'home', child: Text('Home')),
-                    if (isAdmin)
-                      const PopupMenuItem(value: 'fleet', child: Text('Fleet')),
                     const PopupMenuDivider(),
                   ],
                   if (AuthService.isLoggedIn)

@@ -4,7 +4,7 @@ import 'package:vrs_ui/app/controllers/admin_controller.dart';
 import 'package:vrs_ui/app/core/utils/auth_service.dart';
 import 'package:vrs_ui/app/core/utils/image_url.dart';
 import 'package:vrs_ui/app/data/models/vehicle_model.dart';
-import 'package:vrs_ui/app/ui/admin/vehicle_form_dialog.dart';
+import 'package:vrs_ui/app/ui/admin/vehicle_page/vehicle_form_dialog.dart';
 
 class AdminVehiclesPage extends GetView<AdminController> {
   const AdminVehiclesPage({super.key});

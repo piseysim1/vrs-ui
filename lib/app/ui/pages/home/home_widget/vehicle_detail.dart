@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vrs_ui/app/controllers/home_controller.dart';
+import 'package:vrs_ui/app/core/utils/auth_service.dart';
 import 'package:vrs_ui/app/core/utils/image_url.dart';
 import 'package:vrs_ui/app/data/models/vehicle_model.dart';
+import 'package:vrs_ui/app/ui/pages/checkout/checkout_page.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar_widget.dart';
 
 class VehicleDetailPage extends GetView<HomeController> {
@@ -14,7 +16,7 @@ class VehicleDetailPage extends GetView<HomeController> {
     if (Navigator.of(context).canPop()) {
       Get.back();
     } else {
-      Get.offAllNamed('/home'); // opened directly by URL / refresh
+      Get.offAllNamed('/home');
     }
   }
 
@@ -271,8 +273,11 @@ class VehicleDetailPage extends GetView<HomeController> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                // TODO: go to booking page
-                Get.snackbar('Booking', 'Booking page coming soon');
+                if (!AuthService.isLoggedIn) {
+                  Get.toNamed('/login');
+                  return;
+                }
+                Get.toNamed('/checkout/${v.id}');
               },
               icon: const Icon(Icons.event_available, size: 20),
               label: const Text('Book Now'),

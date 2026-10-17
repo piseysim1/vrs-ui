@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vrs_ui/app/controllers/home_controller.dart';
 import 'package:vrs_ui/app/core/utils/image_url.dart';
-import 'package:vrs_ui/app/ui/pages/home/home_widget/brand_card.dart';
-import 'package:vrs_ui/app/ui/pages/home/home_widget/brand_slider.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/discover_section.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/footer_section.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/hero_banner.dart';
@@ -58,48 +56,6 @@ class HomePage extends GetView<HomeController> {
                     );
                   }),
                   const SizedBox(height: 30),
-
-                  // ── Browse by brand ──
-                  // const Text(
-                  //   'Browse by Brand',
-                  //   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-                  // ),
-                  // const SizedBox(height: 16),
-                  // Obx(() {
-                  //   final selectedId = controller.selectedBrandId.value;
-
-                  //   if (controller.isLoadingBrands.value) {
-                  //     return const Center(
-                  //       child: Padding(
-                  //         padding: EdgeInsets.all(20.0),
-                  //         child: CircularProgressIndicator(),
-                  //       ),
-                  //     );
-                  //   }
-                  //   if (controller.brandList.isEmpty) {
-                  //     return const Text('No brands available');
-                  //   }
-                  //   return BrandSlider(
-                  //     itemCount: controller.brandList.length,
-                  //     itemBuilder: (context, index) {
-                  //       final brand = controller.brandList[index];
-                  //       final isSelected = selectedId == brand.id;
-                  //       return BrandCard(
-                  //         icon: controller.getBrandIcon(brand.name),
-                  //         title: brand.name,
-                  //         subtitle: brand.note ?? 'Quality ride',
-                  //         isSelected: isSelected,
-                  //         onTap: () {
-                  //           controller.selectedBrandId.value = isSelected
-                  //               ? -1
-                  //               : (brand.id ?? -1);
-                  //         },
-                  //       );
-                  //     },
-                  //   );
-                  // }),
-
-                  // const SizedBox(height: 40),
 
                   // ── Trending cars ──
                   Obx(() {

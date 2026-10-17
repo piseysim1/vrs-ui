@@ -37,6 +37,13 @@ class AuthService {
       return {};
     }
   }
+  static int? get userId {
+  final v = _payload()['uid'];
+  final fromToken = v is int ? v : int.tryParse('$v');
+  if (fromToken != null) return fromToken;
+  final saved = _box.read('userId');
+  return saved is int ? saved : int.tryParse('$saved');
+}
 
   static Map<String, dynamic> get debugClaims => _payload();
   static List<String> get roles {

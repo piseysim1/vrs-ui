@@ -23,7 +23,6 @@ class VehicleCard extends StatelessWidget {
     final url = resolveImageUrl(vehicle.imageUrl);
     final hasPrice = vehicle.price != null && vehicle.price! > 0;
 
-    // ---- Status logic ----
     final status = vehicle.statusName.trim().toLowerCase();
     final isAvailable = status == 'available';
     final isRented = status == 'rented' || status == 'rent';

@@ -17,9 +17,7 @@ class BrandController extends GetxController {
     super.onInit();
     load();
   }
-
   bool _ok(int? c) => c == 200 || c == 201 || c == 204;
-
   List _list(dynamic d) {
     if (d is List) return d;
     if (d is Map) {
@@ -30,7 +28,6 @@ class BrandController extends GetxController {
     return [];
   }
 
-  // ---------- fetch ----------
   Future<void> load() async {
     try {
       isLoading.value = true;

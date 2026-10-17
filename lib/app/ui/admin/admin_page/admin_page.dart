@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vrs_ui/app/controllers/admin_controller.dart';
 import 'package:vrs_ui/app/core/utils/auth_service.dart';
+import 'package:vrs_ui/app/ui/admin/admin_booking_page/admin_bookings_page.dart';
 import 'package:vrs_ui/app/ui/admin/admin_brand_page/admin_brand_page.dart';
+import 'package:vrs_ui/app/ui/admin/admin_customer_page/admin_customer_page.dart';
 import 'package:vrs_ui/app/ui/admin/admin_dashboard_page.dart';
 import 'package:vrs_ui/app/ui/admin/admin_location_page/admin_location_page.dart';
-import 'package:vrs_ui/app/ui/admin/admin_vehicles_page.dart';
+import 'package:vrs_ui/app/ui/admin/vehicle_page/admin_vehicles_page.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar_widget.dart';
 
 class _MenuItem {
@@ -46,9 +48,11 @@ class AdminPage extends GetView<AdminController> {
                 child: Obx(() {
                   final i = controller.menuIndex.value;
                   if (i == 0) return const AdminDashboardPage();
+                  if (i == 1) return const AdminBookingsPage();
                   if (i == 2) return const AdminVehiclesPage();
                   if (i == 3) return const AdminBrandPage();
                   if (i == 4) return const AdminLocationPage();
+                  if (i == 5) return const AdminCustomerPage();
                   return Center(
                     child: Text(
                       '${_menu[i].title} page coming soon',

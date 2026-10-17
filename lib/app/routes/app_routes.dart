@@ -12,4 +12,5 @@ abstract class _Paths {
   static const Home = '/home';
   static const VehicleDetail = '/vehicle/:id';
   static const Admin = '/admin';
+  static const Checkout = '/checkout/:id';
 }
