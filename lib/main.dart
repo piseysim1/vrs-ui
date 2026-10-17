@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:vrs_ui/app/routes/app_pages.dart';
 
 Future<void> main() async {
+  // 1. Ensure Flutter bindings are initialized before calling async code
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. Enable clean URLs without the '#' for Flutter Web
+  usePathUrlStrategy();
+
+  // 3. Initialize GetStorage
   await GetStorage.init();
+
+  // 4. Run the app
   runApp(const MyApp());
 }
 

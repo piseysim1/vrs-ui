@@ -1,0 +1,11 @@
+version: "3.2"
+services:
+  ui-ctn:
+    image: "${REGISTRY}/vrs-ui:dev"
+    restart: always
+    ports:
+      - "3002:80"
+    environment:
+      - LANG=en
+      - APP_NAME=VRS
+      - APP_VERSION=1.0.0
