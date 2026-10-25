@@ -23,12 +23,83 @@ class LoginController extends GetxController {
     isPasswordObscured.value = !isPasswordObscured.value;
   }
 
+  // --- Reusable Custom Snackbar Helper ---
+  void _showCustomSnackbar({
+    required String title,
+    required String message,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+  }) {
+    Get.snackbar(
+      '',
+      '',
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: const Color(0xFFFFFFFF),
+      titleText:
+          const SizedBox.shrink(), // Hides default title to use custom layout
+      messageText: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      borderRadius: 24,
+      duration: const Duration(seconds: 3),
+      boxShadows: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.08),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    );
+  }
+  // ---------------------------------------
+
   Future<void> login() async {
     final username = usernameController.text.trim();
     final password = passwordController.text.trim();
 
     if (username.isEmpty || password.isEmpty) {
-      Get.snackbar('Error', 'Please fill in all fields');
+      _showCustomSnackbar(
+        title: 'Error',
+        message: 'Please fill in all fields',
+        icon: Icons.error_outline_rounded,
+        iconColor: const Color(0xFFDC2626), // Red
+        iconBgColor: const Color(0xFFFEE2E2), // Soft Red
+      );
       return;
     }
 
@@ -45,8 +116,6 @@ class LoginController extends GetxController {
           (body is! Map ||
               body['statusCode'] == null ||
               body['statusCode'] == 200);
-
-      // Extract result map safely to resolve Dart type analysis issues
       final Map<String, dynamic>? result =
           (body is Map && body['result'] is Map)
           ? Map<String, dynamic>.from(body['result'])
@@ -62,7 +131,16 @@ class LoginController extends GetxController {
         }
         // Fetch user info and role
         await _loadRole(access, username);
-        Get.snackbar('Success', 'Welcome back!');
+
+        // Success Snackbar
+        _showCustomSnackbar(
+          title: 'Success',
+          message: 'Welcome back! Successfully logged in.',
+          icon: Icons.verified_rounded,
+          iconColor: const Color(0xFF0284C7), // Blue
+          iconBgColor: const Color(0xFFE0F2FE), // Soft Blue
+        );
+
         final bool hasPermission = AuthService.can('vehicle.view');
         Get.offAllNamed(hasPermission ? '/admin' : '/home');
       } else {
@@ -70,10 +148,25 @@ class LoginController extends GetxController {
             (body is Map ? body['message'] : null) ??
             response.statusText ??
             'Login failed';
-        Get.snackbar('Login Failed', errorMsg.toString());
+
+        // Failure Snackbar
+        _showCustomSnackbar(
+          title: 'Login Failed',
+          message: errorMsg.toString(),
+          icon: Icons.error_outline_rounded,
+          iconColor: const Color(0xFFDC2626), // Red
+          iconBgColor: const Color(0xFFFEE2E2), // Soft Red
+        );
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to connect: ${e.toString()}');
+      // Connection/Catch Error Snackbar
+      _showCustomSnackbar(
+        title: 'Error',
+        message: 'Failed to connect: ${e.toString()}',
+        icon: Icons.wifi_off_rounded,
+        iconColor: const Color(0xFFD97706), // Amber
+        iconBgColor: const Color(0xFFFEF3C7), // Soft Amber
+      );
     } finally {
       isLoading.value = false;
     }
@@ -92,7 +185,6 @@ class LoginController extends GetxController {
       if (bodyData is List) {
         list = bodyData;
       } else if (bodyData is Map) {
-        
         final rawList =
             bodyData['results'] ??
             bodyData['Results'] ??

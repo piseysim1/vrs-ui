@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vrs_ui/app/controllers/home_controller.dart';
 import 'package:vrs_ui/app/core/utils/image_url.dart';
+import 'package:vrs_ui/app/ui/pages/home/About%20Us/about_us_section.dart';
+import 'package:vrs_ui/app/ui/pages/home/About%20Us/our_services_section.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/discover_section.dart';
+import 'package:vrs_ui/app/ui/pages/home/home_widget/featuresBannerwidget.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/footer_section.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/hero_banner.dart';
+import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar_widget.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/search_bar_section.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/trending_section.dart';
@@ -17,7 +21,7 @@ class HomePage extends GetView<HomeController> {
     final controller = Get.put(HomeController());
     final isMobile = MediaQuery.of(context).size.width < 650;
     final scroll = ScrollController(); // add this
-
+    final c = Get.find<HomeController>();
     void openVehicle(v) => Get.toNamed('/vehicle/${v.id}');
 
     return Scaffold(
@@ -40,7 +44,6 @@ class HomePage extends GetView<HomeController> {
                   const SearchBarSection(),
                   const SizedBox(height: 30),
 
-                  // ── Hero slideshow (real cars from your data) ──
                   Obx(() {
                     final loading = controller.isLoadingVehicles.value;
                     final all = controller.vehicleList.toList();
@@ -55,8 +58,9 @@ class HomePage extends GetView<HomeController> {
                       onBook: openVehicle,
                     );
                   }),
-                  const SizedBox(height: 30),
-
+                  const SizedBox(height: 50),
+                  FeaturesBannerWidget(),
+                  const SizedBox(height: 40),
                   // ── Trending cars ──
                   Obx(() {
                     if (controller.isLoadingVehicles.value) {
@@ -85,6 +89,9 @@ class HomePage extends GetView<HomeController> {
                     );
                   }),
                   const SizedBox(height: 30),
+                  AboutUsSection(key: c.aboutKey),
+                  const SizedBox(height: 50),
+                  OurServicesSection(),
                 ],
               ),
             ),

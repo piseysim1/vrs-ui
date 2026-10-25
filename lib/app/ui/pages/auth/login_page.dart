@@ -56,20 +56,34 @@ class LoginPage extends GetView<LoginController> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Welcome Back',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+
+                // Enhanced Styling for "Welcome Back"
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Color(0xFF003399), Color(0xFF2563EB)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ).createShader(bounds),
+                  child: const Text(
+                    'Welcome Back',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 6),
                 const Text(
                   'Sign in to manage your fleet and rentals.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 32),
                 const LabelTextWidget(label: 'Username'),

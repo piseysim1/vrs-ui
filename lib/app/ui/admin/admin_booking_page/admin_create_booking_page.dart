@@ -10,6 +10,7 @@ import 'package:vrs_ui/app/data/models/payment_method_model.dart';
 import 'package:vrs_ui/app/data/models/vehicle_model.dart';
 import 'package:vrs_ui/app/data/providers/admin_provider.dart';
 import 'package:vrs_ui/app/data/providers/file_provider.dart';
+import 'package:vrs_ui/app/ui/admin/admin_booking_page/Widget/date_time_tile.dart';
 
 class AdminCreateBookingPage extends StatefulWidget {
   const AdminCreateBookingPage({super.key});
@@ -701,31 +702,37 @@ class _AdminCreateBookingPageState extends State<AdminCreateBookingPage> {
     ),
   );
 
-  Widget _dtField(String label, DateTime v, ValueChanged<DateTime> on) =>
-      InkWell(
-        onTap: () async {
-          final d = await showDatePicker(
-            context: context,
-            initialDate: v,
-            firstDate: DateTime.now().subtract(const Duration(days: 1)),
-            lastDate: DateTime.now().add(const Duration(days: 365)),
-          );
-          if (d == null || !mounted) return;
-          final t = await showTimePicker(
-            context: context,
-            initialTime: TimeOfDay.fromDateTime(v),
-          );
-          if (t == null) return;
-          on(DateTime(d.year, d.month, d.day, t.hour, t.minute));
-        },
-        child: InputDecorator(
-          decoration: _dec(label, icon: Icons.event),
-          child: Text(
-            '${fmtDate(v)} • ${TimeOfDay.fromDateTime(v).format(context)}',
-            style: const TextStyle(fontSize: 13),
-          ),
-        ),
-      );
+  Widget _dtField(
+    String label,
+    DateTime v,
+    ValueChanged<DateTime> on, {
+    DateTime? min,
+  }) => DateTimeTile(label: label, value: v, onChanged: on, firstDate: min);
+  // Widget _dtField(String label, DateTime v, ValueChanged<DateTime> on) =>
+  //     InkWell(
+  //       onTap: () async {
+  //         final d = await showDatePicker(
+  //           context: context,
+  //           initialDate: v,
+  //           firstDate: DateTime.now().subtract(const Duration(days: 1)),
+  //           lastDate: DateTime.now().add(const Duration(days: 365)),
+  //         );
+  //         if (d == null || !mounted) return;
+  //         final t = await showTimePicker(
+  //           context: context,
+  //           initialTime: TimeOfDay.fromDateTime(v),
+  //         );
+  //         if (t == null) return;
+  //         on(DateTime(d.year, d.month, d.day, t.hour, t.minute));
+  //       },
+  //       child: InputDecorator(
+  //         decoration: _dec(label, icon: Icons.event),
+  //         child: Text(
+  //           '${fmtDate(v)} • ${TimeOfDay.fromDateTime(v).format(context)}',
+  //           style: const TextStyle(fontSize: 13),
+  //         ),
+  //       ),
+  //     );
 
   Widget _locDd(String label, int? value, ValueChanged<int?> on) {
     final items = ac.locations;

@@ -58,7 +58,7 @@ class _HeroBannerState extends State<HeroBanner> {
     return LayoutBuilder(
       builder: (context, c) {
         final isMobile = c.maxWidth < 650;
-        final height = isMobile ? 500.0 : 520.0;
+        final height = isMobile ? 600.0 : 650.0;
         final pad = isMobile ? 22.0 : 56.0;
         final list = widget.vehicles;
 
@@ -272,91 +272,47 @@ class _HeroSlideState extends State<_HeroSlide>
 
     return LayoutBuilder(
       builder: (context, box) {
-        final W = box.maxWidth;
-
         return Stack(
           fit: StackFit.expand,
           children: [
-            // Blurred car photo as background
             if (url != null)
-              ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-                child: Transform.scale(
-                  scale: 1.25,
-                  child: Image.network(
-                    url,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox(),
-                  ),
+              AnimatedBuilder(
+                animation: _c,
+                builder: (_, child) =>
+                    Transform.scale(scale: 1.0 + 0.05 * _c.value, child: child),
+                child: Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _carPlaceholder(),
                 ),
-              ),
-            // Dark overlay so text is readable
+              )
+            else
+              _carPlaceholder(),
+
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: m ? Alignment.topCenter : Alignment.centerLeft,
                   end: m ? Alignment.bottomCenter : Alignment.centerRight,
                   colors: [
-                    Colors.black.withOpacity(m ? 0.35 : 0.80),
-                    Colors.black.withOpacity(m ? 0.85 : 0.45),
+                    Colors.black.withOpacity(m ? 0.8 : 0.85),
+                    Colors.black.withOpacity(m ? 0.3 : 0.1),
                   ],
+                  stops: const [0.0, 0.7],
                 ),
               ),
             ),
 
-            // The car card
-            Positioned(
-              top: m ? 24 : 36,
-              right: widget.padding,
-              left: m ? widget.padding : null,
-              bottom: m ? null : 84,
-              height: m ? 180 : null,
-              width: m ? null : W * 0.46,
-              child: _reveal(
-                _iv(0.0, 0.2),
-                from: const Offset(0.12, 0),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x66000000),
-                        blurRadius: 40,
-                        offset: Offset(0, 20),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: AnimatedBuilder(
-                      animation: _c,
-                      builder: (_, child) => Transform.scale(
-                        scale: 1.0 + 0.06 * _c.value, // slow zoom
-                        child: child,
-                      ),
-                      child: url == null
-                          ? _carPlaceholder()
-                          : Image.network(
-                              url,
-                              fit: BoxFit
-                                  .cover, // use BoxFit.contain to show the full car
-                              errorBuilder: (_, __, ___) => _carPlaceholder(),
-                            ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Text
+            // 3. Text Content on the Left
             Padding(
               padding: EdgeInsets.only(
                 left: widget.padding,
                 right: widget.padding,
                 bottom: m ? 60 : 84,
+                top: m ? 24 : 36,
               ),
               child: Align(
-                alignment: Alignment.bottomLeft,
+                alignment: Alignment.centerLeft,
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: m ? 500 : 480),
                   child: Column(

@@ -239,7 +239,7 @@ class FooterSection extends StatelessWidget {
         SizedBox(height: 6),
         // TODO: put your real phone, email and address here
         Text(
-          '+855 00 000 000',
+          '+855 969821152',
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
         ),
         SizedBox(height: 14),
@@ -268,7 +268,6 @@ class FooterSection extends StatelessWidget {
     );
   }
 
-  // Brand links: each one opens that brand's page
   Widget _brandsRow() {
     if (!Get.isRegistered<HomeController>()) return const SizedBox.shrink();
     final c = Get.find<HomeController>();

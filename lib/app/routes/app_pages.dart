@@ -3,14 +3,18 @@ import 'package:vrs_ui/app/bindings/admin_binding.dart';
 import 'package:vrs_ui/app/bindings/checkout_binding.dart';
 import 'package:vrs_ui/app/bindings/home_binding.dart';
 import 'package:vrs_ui/app/bindings/login_binding.dart';
+import 'package:vrs_ui/app/bindings/my_bookings_binding.dart';
+import 'package:vrs_ui/app/bindings/profile_binding.dart';
 import 'package:vrs_ui/app/core/utils/admin_middleware.dart';
 import 'package:vrs_ui/app/ui/admin/admin_page/admin_page.dart';
 import 'package:vrs_ui/app/ui/pages/auth/login_page.dart';
 import 'package:vrs_ui/app/ui/pages/auth/register_page.dart';
 import 'package:vrs_ui/app/ui/pages/checkout/checkout_page.dart';
+import 'package:vrs_ui/app/ui/pages/home/Booking_History/my_bookings_page.dart';
 import 'package:vrs_ui/app/ui/pages/home/brand/brand_page.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_page.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/vehicle_detail.dart';
+import 'package:vrs_ui/app/ui/pages/profile/profile_page.dart';
 import '../bindings/register_binding.dart';
 part 'app_routes.dart';
 
@@ -55,6 +59,16 @@ class AppPages {
       name: _Paths.Checkout,
       page: () => const CheckoutPage(),
       binding: CheckoutBinding(),
+    ),
+    GetPage(
+      name: _Paths.Profile,
+      page: () => const ProfilePage(),
+      binding: ProfileBinding(),
+    ),
+    GetPage(
+      name: _Paths.MyBookings,
+      page: () => const MyBookingsPage(),
+      binding: MyBookingsBinding(),
     ),
   ];
 }

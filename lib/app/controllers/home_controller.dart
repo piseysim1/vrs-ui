@@ -7,7 +7,7 @@ import 'package:vrs_ui/app/data/providers/home_provider.dart';
 
 class HomeController extends GetxController {
   final HomeProvider homeProvider = HomeProvider();
-
+  static bool pendingAbout = false;
   var brandList = <BrandModel>[].obs;
   var vehicleList = <VehicleModel>[].obs;
   var rateList = <RateModel>[].obs;
@@ -15,12 +15,23 @@ class HomeController extends GetxController {
   var isLoadingBrands = false.obs;
   var isLoadingVehicles = false.obs;
   var selectedBrandId = (-1).obs;
-
+  final GlobalKey aboutKey = GlobalKey();
   @override
   void onInit() {
     super.onInit();
     fetchBrands();
     loadVehiclesWithPrices();
+  }
+
+  void scrollToAbout() {
+    final ctx = aboutKey.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+      alignment: 0.0, // 0.0 puts the section at the top of the viewport
+    );
   }
 
   var searchQuery = ''.obs;

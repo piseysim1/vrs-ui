@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:get/get.dart';
 import 'package:vrs_ui/app/controllers/booking_controller.dart';
 import 'package:vrs_ui/app/core/utils/auth_service.dart';
+import 'package:vrs_ui/app/data/models/booking_summary_model.dart';
 import 'package:vrs_ui/app/data/models/option_item.dart';
 import 'package:vrs_ui/app/data/models/payment_method_model.dart';
 import 'package:vrs_ui/app/data/models/vehicle_model.dart';
@@ -16,12 +17,8 @@ class PickedDoc {
 
 class CheckoutController extends GetxController {
   static const taxRate = 0.10;
-
-  // used only if GET /paymentmethod returns nothing
   static const _fallbackMethods = [PaymentMethodModel(id: 1, name: 'Cash')];
-
   final api = AdminProvider();
-
   final vehicle = Rxn<VehicleModel>();
   final locations = <OptionItem>[].obs;
   final methods = <PaymentMethodModel>[].obs;
@@ -34,8 +31,14 @@ class CheckoutController extends GetxController {
   final start = DateTime.now().add(const Duration(days: 1)).obs;
   final end = DateTime.now().add(const Duration(days: 3)).obs;
 
-  // keys: vehicleDoc, idCard, paymentProof, registration
   final docs = <String, PickedDoc>{}.obs;
+  bool get isAdmin {
+    if (AuthService.can('vehicle.view')) return true;
+    const adminRoles = {'admin', 'administrator', 'superadmin'};
+    return AuthService.roles.any(adminRoles.contains);
+  }
+
+  BookingSummary? lastSummary;
 
   PaymentMethodModel? get selectedMethod =>
       methods.firstWhereOrNull((m) => m.id == paymentId.value);
@@ -99,7 +102,6 @@ class CheckoutController extends GetxController {
     }
   }
 
-  // ---------- price ----------
   double get dailyRate => vehicle.value?.dayPrice ?? vehicle.value?.price ?? 0;
 
   int get days {
@@ -112,9 +114,15 @@ class CheckoutController extends GetxController {
   double get total => subtotal + tax;
 
   bool get datesValid => end.value.isAfter(start.value);
+  int _maxBookingId(BookingController bc) =>
+      bc.bookings.fold<int>(0, (m, b) => (b.id ?? 0) > m ? b.id! : m);
 
-  // ---------- booking ----------
   Future<bool> submit() async {
+    if (isAdmin) {
+      Get.snackbar('Not allowed', "Admin accounts can't book a vehicle");
+      return false;
+    }
+
     final v = vehicle.value;
     if (v == null) return false;
     if (!datesValid) {
@@ -146,7 +154,9 @@ class CheckoutController extends GetxController {
         return n.contains('landing') || n.contains('online');
       });
 
-      return await bc.createBooking(
+      final idsBefore = _maxBookingId(bc);
+
+      final ok = await bc.createBooking(
         userId: uid,
         sourceId: landing?.id,
         start: start.value,
@@ -162,8 +172,44 @@ class CheckoutController extends GetxController {
           'vehicleRegistrationUrl': urls['registration'],
         },
       );
+
+      if (ok) lastSummary = await _buildSummary(bc, v, idsBefore, uid);
+      return ok;
     } finally {
       saving.value = false;
     }
+  }
+
+  Future<BookingSummary> _buildSummary(
+    BookingController bc,
+    VehicleModel v,
+    int idsBefore,
+    int uid,
+  ) async {
+    var ref = '';
+    try {
+      await bc.load();
+      final mine =
+          bc.bookings
+              .where((b) => b.userId == uid && (b.id ?? 0) > idsBefore)
+              .toList()
+            ..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+      if (mine.isNotEmpty) ref = mine.first.bookingNo;
+    } catch (_) {}
+
+    final loc = locations
+        .firstWhereOrNull((l) => l.id == locationId.value)
+        ?.name;
+
+    return BookingSummary(
+      reference: ref,
+      vehicleName: v.displayName,
+      brandName: v.brandName,
+      imageUrl: v.imageUrl,
+      locationName: loc ?? v.locationName,
+      start: start.value,
+      end: end.value,
+      total: total,
+    );
   }
 }

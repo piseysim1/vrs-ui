@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:vrs_ui/app/controllers/admin_controller.dart'; // statusKindOf, kStatusTypeId
 import 'package:vrs_ui/app/core/utils/auth_service.dart';
 import 'package:vrs_ui/app/data/models/booking_model.dart';
 import 'package:vrs_ui/app/data/models/option_item.dart';
@@ -6,6 +7,7 @@ import 'package:vrs_ui/app/data/models/vehicle_model.dart';
 import 'package:vrs_ui/app/data/providers/admin_provider.dart';
 
 const kBusinessSourceTypeId = 5;
+const kBookingStatusTypeId = 1;
 
 class BookingController extends GetxController {
   final api = AdminProvider();
@@ -15,10 +17,15 @@ class BookingController extends GetxController {
   final details = <BookingDetailModel>[].obs;
   final users = <OptionItem>[].obs;
   final sources = <OptionItem>[].obs;
+  final statuses = <OptionItem>[].obs; // booking statuses (lookup type 1)
+  final vehicles = <VehicleModel>[].obs;
+  final vehicleStatuses =
+      <OptionItem>[].obs; // vehicle statuses (lookup type 3)
+  final _userInfo = <int, Map<String, dynamic>>{};
 
   final isLoading = false.obs;
   final search = ''.obs;
-  final filter = 'all'.obs; // all | upcoming | active | completed
+  final filter = 'all'.obs; // all | pending | approved | rejected
   final page = 0.obs;
 
   @override
@@ -43,9 +50,10 @@ class BookingController extends GetxController {
     try {
       isLoading.value = true;
       final res = await Future.wait([
-        api.getBookings(),
-        api.getBookingDetails(),
-        api.getUsers(),
+        api.getBookings(), // 0
+        api.getBookingDetails(), // 1
+        api.getUsers(), // 2
+        api.getVehicles(), // 3
       ]);
 
       if (_ok(res[0].statusCode)) {
@@ -53,26 +61,54 @@ class BookingController extends GetxController {
             .map((e) => BookingModel.fromJson(Map<String, dynamic>.from(e)))
             .toList();
       } else {
-        Get.snackbar('Bookings', 'HTTP ${res[0].statusCode}: ${res[0].bodyString}');
+        Get.snackbar(
+          'Bookings',
+          'HTTP ${res[0].statusCode}: ${res[0].bodyString}',
+        );
       }
+
       if (_ok(res[1].statusCode)) {
-        print('BOOKING DETAIL sample: ${_list(res[1].body).take(1)}');
         details.value = _list(res[1].body)
-            .map((e) => BookingDetailModel.fromJson(Map<String, dynamic>.from(e)))
+            .map(
+              (e) => BookingDetailModel.fromJson(Map<String, dynamic>.from(e)),
+            )
             .toList();
       }
+
       if (_ok(res[2].statusCode)) {
-        users.value = _list(res[2].body)
-            .map((e) => OptionItem(
-                  id: e['id'] ?? 0,
-                  name: (e['fullName'] ?? e['username'] ?? '').toString(),
-                ))
+        final list = _list(res[2].body);
+        _userInfo.clear();
+        for (final e in list) {
+          final m = Map<String, dynamic>.from(e);
+          _userInfo[(m['id'] as num?)?.toInt() ?? 0] = m;
+        }
+        users.value = list
+            .map(
+              (e) => OptionItem(
+                id: e['id'] ?? 0,
+                name: (e['fullName'] ?? e['username'] ?? '').toString(),
+              ),
+            )
             .toList();
       }
-      if (sources.isEmpty) {
+
+      if (_ok(res[3].statusCode)) {
+        vehicles.value = _list(res[3].body)
+            .map((e) => VehicleModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+
+      if (sources.isEmpty || statuses.isEmpty || vehicleStatuses.isEmpty) {
         final items = await api.fetchLookupItems();
-        sources.value =
-            items.where((e) => e.typeId == kBusinessSourceTypeId).toList();
+        sources.value = items
+            .where((e) => e.typeId == kBusinessSourceTypeId)
+            .toList();
+        statuses.value = items
+            .where((e) => e.typeId == kBookingStatusTypeId)
+            .toList();
+        vehicleStatuses.value = items
+            .where((e) => e.typeId == kStatusTypeId)
+            .toList();
       }
     } catch (e) {
       Get.snackbar('Error', 'Failed to load bookings: $e');
@@ -83,11 +119,30 @@ class BookingController extends GetxController {
 
   // ---------------- stats ----------------
   int get totalCount => bookings.length;
-  double get revenue => bookings.fold(0.0, (s, b) => s + b.total);
-  int _count(BookingState s) => bookings.where((b) => b.state == s).length;
-  int get activeCount => _count(BookingState.active);
-  int get upcomingCount => _count(BookingState.upcoming);
-  int get completedCount => _count(BookingState.completed);
+
+  double get revenue => bookings
+      .where((b) => b.approval != Approval.rejected)
+      .fold(0.0, (s, b) => s + b.total);
+
+  /// approved, dates running now, car not returned yet
+  int get activeCount => bookings.where((b) => b.isRunning).length;
+
+  /// approved, not started yet
+  int get upcomingCount => bookings
+      .where(
+        (b) =>
+            b.approval == Approval.approved &&
+            !b.isReturned &&
+            b.state == BookingState.upcoming,
+      )
+      .length;
+
+  int get overdueCount => bookings.where((b) => b.isOverdue).length;
+
+  int _ap(Approval a) => bookings.where((b) => b.approval == a).length;
+  int get pendingCount => _ap(Approval.pending);
+  int get approvedCount => _ap(Approval.approved);
+  int get rejectedCount => _ap(Approval.rejected);
 
   Map<String, int> get bySource {
     final m = <String, int>{};
@@ -102,13 +157,14 @@ class BookingController extends GetxController {
   List<BookingModel> get filtered {
     final q = search.value.trim().toLowerCase();
     return bookings.where((b) {
-      if (filter.value != 'all' && b.state.name != filter.value) return false;
+      if (filter.value != 'all' && b.approval.name != filter.value) {
+        return false;
+      }
       return q.isEmpty ||
           b.bookingNo.toLowerCase().contains(q) ||
           b.username.toLowerCase().contains(q) ||
           b.businessSourceName.toLowerCase().contains(q);
-    }).toList()
-      ..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+    }).toList()..sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
   }
 
   int get pageCount =>
@@ -134,7 +190,102 @@ class BookingController extends GetxController {
   List<BookingDetailModel> linesOf(int? bookingId) =>
       details.where((d) => d.bookingId == bookingId).toList();
 
+  // ---------------- table helpers ----------------
+  String emailOf(int? uid) => '${_userInfo[uid]?['email'] ?? ''}';
+
+  List<VehicleModel> vehiclesOf(BookingModel b) {
+    final ids = linesOf(b.id).map((d) => d.vehicleId).toSet();
+    return vehicles.where((v) => ids.contains(v.id)).toList();
+  }
+
+  int _vStatusId(String name, int fallback) =>
+      vehicleStatuses
+          .firstWhereOrNull((s) => s.name.toLowerCase() == name)
+          ?.id ??
+      fallback;
+
+  // ---------------- approve / reject / return ----------------
+  /// [name] = Approved | Rejected | Completed
+  Future<bool> setStatus(BookingModel b, String name) async {
+    final st = statuses.firstWhereOrNull(
+      (s) => s.name.toLowerCase() == name.toLowerCase(),
+    );
+    if (st == null) {
+      Get.snackbar('Status', 'Item "$name" not found in lookup type 1');
+      return false;
+    }
+
+    // vehicles of this booking
+    var cars = vehiclesOf(b);
+    if (cars.isEmpty) {
+      final full = await fetchOne(b.id!);
+      final ids = (full?.lines ?? []).map((d) => d.vehicleId).toSet();
+      cars = vehicles.where((v) => ids.contains(v.id)).toList();
+    }
+
+    // never approve a car that is not free
+    if (name == 'Approved') {
+      final busy = cars.where(
+        (v) => statusKindOf(v.statusName) != StatusKind.available,
+      );
+      if (busy.isNotEmpty) {
+        Get.snackbar(
+          'Not available',
+          '${busy.first.displayName} is ${busy.first.statusName}. Cannot approve.',
+        );
+        return false;
+      }
+    }
+
+    final r = await api.changeBookingStatus(b.id!, st.id);
+    print('STATUS ${r.statusCode}: ${r.bodyString}');
+    if (!_ok(r.statusCode)) {
+      Get.snackbar('Failed', 'HTTP ${r.statusCode}: ${r.bodyString}');
+      return false;
+    }
+
+    // keep the car in sync with the booking
+    if (name == 'Approved') {
+      await _setVehicles(cars, _vStatusId('rented', 6));
+    } else if (name == 'Completed' ||
+        (name == 'Rejected' && b.approval == Approval.approved)) {
+      await _setVehicles(cars, _vStatusId('available', 4));
+    }
+
+    Get.snackbar('Done', 'Booking ${b.bookingNo} ${name.toLowerCase()}');
+    await load();
+    return true;
+  }
+
+  Future<void> _setVehicles(List<VehicleModel> cars, int statusId) async {
+    for (final v in cars) {
+      final r = await api.updateVehicle(v.id!, {
+        'id': v.id,
+        'licensePlate': v.licensePlate,
+        'brandId': v.brandId,
+        'modelId': v.modelId,
+        'locationId': v.locationId,
+        'colorId': v.colorId ?? 0,
+        'statusId': statusId,
+        'imageUrl': v.imageUrl,
+      });
+      print('VEHICLE ${v.id} -> status $statusId: ${r.statusCode}');
+    }
+  }
+
+  /// One booking with its lines and documents (View dialog).
+  Future<BookingModel?> fetchOne(int id) async {
+    final r = await api.getBooking(id);
+    if (!_ok(r.statusCode) || r.body is! Map) return null;
+    final m = Map<String, dynamic>.from(r.body);
+    final inner = m['result'] is Map
+        ? Map<String, dynamic>.from(m['result'])
+        : m;
+    return BookingModel.fromJson(inner);
+  }
+
   // ---------------- create ----------------
+  
   String _nextNo() {
     var max = 0;
     for (final b in bookings) {
@@ -150,8 +301,6 @@ class BookingController extends GetxController {
     return h <= 24 ? 1 : (h / 24).ceil();
   }
 
-  /// One request: the booking with its detail lines nested inside.
-  /// (Needs the backend to declare bookingDetails as a list.)
   Future<bool> createBooking({
     required int userId,
     required int? sourceId,
@@ -173,9 +322,12 @@ class BookingController extends GetxController {
             'qty': days,
             'unitPrice': priceOf(v),
             'subTotal': priceOf(v) * days,
-          }
+          },
       ];
-      final subtotal = vehicles.fold<double>(0, (s, v) => s + priceOf(v) * days);
+      final subtotal = vehicles.fold<double>(
+        0,
+        (s, v) => s + priceOf(v) * days,
+      );
       final total = subtotal * (1 + taxRate);
       final no = _nextNo();
 
@@ -187,7 +339,7 @@ class BookingController extends GetxController {
         'endDate': end.toUtc().toIso8601String(),
         'total': total,
         'bookingDetails': lines,
-        ...extra, // ignored by the API until the backend adds these fields
+        ...extra,
       };
       print('CREATE BOOKING body: $body');
 
@@ -195,8 +347,11 @@ class BookingController extends GetxController {
       print('CREATE BOOKING ${res.statusCode}: ${res.bodyString}');
 
       if (!_ok(res.statusCode)) {
-        Get.snackbar('Booking failed', 'HTTP ${res.statusCode}: ${res.bodyString}',
-            duration: const Duration(seconds: 8));
+        Get.snackbar(
+          'Booking failed',
+          'HTTP ${res.statusCode}: ${res.bodyString}',
+          duration: const Duration(seconds: 8),
+        );
         return false;
       }
 
@@ -209,8 +364,11 @@ class BookingController extends GetxController {
     }
   }
 
-  /// Quick booking by the logged-in customer (used by the dialog).
-  Future<bool> bookAsCustomer(VehicleModel v, DateTime start, DateTime end) async {
+  Future<bool> bookAsCustomer(
+    VehicleModel v,
+    DateTime start,
+    DateTime end,
+  ) async {
     final uid = AuthService.userId;
     if (uid == null) {
       Get.snackbar('Login required', 'Please log in to book');
@@ -231,11 +389,12 @@ class BookingController extends GetxController {
       if (d.id != null) await api.deleteBookingDetail(d.id!);
     }
     await api.deleteBooking(id);
-    // the API soft-deletes, then throws "not found": judge by reloading
     await load();
     final gone = !bookings.any((b) => b.id == id);
-    Get.snackbar(gone ? 'Deleted' : 'Delete failed',
-        gone ? 'Booking removed' : 'The server did not remove it');
+    Get.snackbar(
+      gone ? 'Deleted' : 'Delete failed',
+      gone ? 'Booking removed' : 'The server did not remove it',
+    );
     return gone;
   }
 }

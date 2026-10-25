@@ -4,7 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:vrs_ui/app/controllers/checkout_controller.dart';
 import 'package:vrs_ui/app/core/utils/image_url.dart';
 import 'package:vrs_ui/app/data/models/booking_model.dart';
-import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar_widget.dart';
+import 'package:vrs_ui/app/ui/pages/checkout/checkout_confirm.dart';
+import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar.dart';
 
 class CheckoutPage extends GetView<CheckoutController> {
   const CheckoutPage({super.key});
@@ -19,6 +20,14 @@ class CheckoutPage extends GetView<CheckoutController> {
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: const NavbarWidget(),
       body: Obx(() {
+        void _goBack() {
+          if (Navigator.of(context).canPop()) {
+            Get.back();
+          } else {
+            Get.offAllNamed('/home');
+          }
+        }
+
         if (controller.loading.value) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -33,8 +42,8 @@ class CheckoutPage extends GetView<CheckoutController> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 TextButton(
-                  onPressed: () => Get.offAllNamed('/home'),
-                  child: const Text('Back to home'),
+                  onPressed: _goBack,
+                  child: const Text('Back to Fleet'),
                 ),
               ],
             ),
@@ -53,15 +62,12 @@ class CheckoutPage extends GetView<CheckoutController> {
                     Row(
                       children: [
                         IconButton(
-                          onPressed: Get.back,
+                          onPressed: _goBack,
                           icon: const Icon(Icons.arrow_back),
                         ),
-                        const Text(
-                          'Checkout',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        TextButton(
+                          onPressed: _goBack,
+                          child: const Text('Back to Fleet'),
                         ),
                       ],
                     ),
@@ -622,8 +628,24 @@ class CheckoutPage extends GetView<CheckoutController> {
                       onPressed: controller.saving.value
                           ? null
                           : () async {
+                              // Admin cannot book
+                              if (controller.isAdmin) {
+                                _showAdminAlert(context);
+                                return;
+                              }
+
                               final ok = await controller.submit();
-                              if (ok) Get.offAllNamed('/home');
+                              if (ok) {
+                                final summary = controller.lastSummary;
+                                if (summary != null) {
+                                  Get.offAll(
+                                    () =>
+                                        BookingConfirmedPage(summary: summary),
+                                  );
+                                } else {
+                                  Get.offAllNamed('/home');
+                                }
+                              }
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _primary,
@@ -669,6 +691,71 @@ class CheckoutPage extends GetView<CheckoutController> {
           ],
         );
       }),
+    );
+  }
+
+  void _showAdminAlert(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        // Limits the maximum horizontal width of the dialog
+        constraints: const BoxConstraints(maxWidth: 400),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 5,
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon container with a soft background circle
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.block_rounded,
+                color: Colors.red,
+                size: 36,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Booking Restricted',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Admin accounts cannot book vehicles from the landing page. Please log in with a customer account to proceed.",
+              style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.4),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Got It',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

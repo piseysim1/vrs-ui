@@ -8,6 +8,7 @@ import 'package:vrs_ui/app/ui/admin/admin_customer_page/admin_customer_page.dart
 import 'package:vrs_ui/app/ui/admin/admin_dashboard_page.dart';
 import 'package:vrs_ui/app/ui/admin/admin_location_page/admin_location_page.dart';
 import 'package:vrs_ui/app/ui/admin/vehicle_page/admin_vehicles_page.dart';
+import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar_widget.dart';
 
 class _MenuItem {

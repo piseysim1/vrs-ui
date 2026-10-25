@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:vrs_ui/app/controllers/admin_controller.dart';
 import 'package:vrs_ui/app/core/utils/auth_service.dart';
 import 'package:vrs_ui/app/core/utils/image_url.dart';
+import 'package:vrs_ui/app/data/models/note_model.dart';
 import 'package:vrs_ui/app/data/models/option_item.dart';
 import 'package:vrs_ui/app/data/models/vehicle_model.dart';
 import 'package:vrs_ui/app/data/providers/file_provider.dart';
@@ -24,6 +25,7 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
   final _formKey = GlobalKey<FormState>();
   final _plate = TextEditingController();
   final _model = TextEditingController();
+  final _note = TextEditingController(); // Model.Note
   final _day = TextEditingController();
   final _hour = TextEditingController();
   final _modelFocus = FocusNode();
@@ -33,13 +35,14 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
   Uint8List? pickedBytes;
   String? pickedName;
   bool saving = false;
+  bool _noteEdited = false; // true once the admin types in the note field
   bool get isEdit => widget.vehicle != null;
 
-  int? get _existingModelId => ctrl.models
-      .firstWhereOrNull(
-        (m) => m.name.toLowerCase() == _model.text.trim().toLowerCase(),
-      )
-      ?.id;
+  OptionItem? get _existingModel => ctrl.models.firstWhereOrNull(
+    (m) => m.name.toLowerCase() == _model.text.trim().toLowerCase(),
+  );
+
+  int? get _existingModelId => _existingModel?.id;
 
   bool get _isNewModel =>
       _model.text.trim().isNotEmpty && _existingModelId == null;
@@ -58,6 +61,7 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
       imageUrl = v.imageUrl;
       _day.text = _fmt(v.dayPrice);
       _hour.text = _fmt(v.hourPrice);
+      _note.text = _existingModel?.note ?? '';
     }
   }
 
@@ -65,6 +69,7 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
   void dispose() {
     _plate.dispose();
     _model.dispose();
+    _note.dispose();
     _day.dispose();
     _hour.dispose();
     _modelFocus.dispose();
@@ -107,9 +112,14 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
       imageUrl = url;
     }
 
+    // captured before saving, because the model list reloads afterwards
+    final modelName = _model.text.trim();
+    final noteText = _note.text;
+    final wasNewModel = _isNewModel;
+
     final ok = await ctrl.saveVehicle(
       id: widget.vehicle?.id,
-      modelName: _model.text.trim(),
+      modelName: modelName,
       body: {
         'licensePlate': _plate.text.trim(),
         'brandId': brandId,
@@ -121,6 +131,11 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
       dayPrice: double.tryParse(_day.text.trim()),
       hourPrice: double.tryParse(_hour.text.trim()),
     );
+
+    // the model exists now (created above if it was new), so save its note
+    if (ok && (wasNewModel || _noteEdited)) {
+      await saveModelNote(modelName, noteText);
+    }
 
     if (!mounted) return;
     setState(() => saving = false);
@@ -248,7 +263,7 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
           ),
         ),
         IconButton(
-          onPressed: Get.back,
+          onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.close, color: Color(0xFF64748B)),
           splashRadius: 20,
         ),
@@ -281,7 +296,7 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
         Row(
           children: [
             TextButton(
-              onPressed: saving ? null : Get.back,
+              onPressed: saving ? null : () => Navigator.of(context).pop(),
               style: TextButton.styleFrom(
                 foregroundColor: const Color(0xFF64748B),
                 padding: const EdgeInsets.symmetric(
@@ -501,6 +516,8 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
         _priceField(_day, 'Daily Rate', '/ day'),
         _priceField(_hour, 'Hourly Rate', '/ hour'),
       ),
+      _noteField(),
+      const SizedBox(height: 14),
       const Padding(
         padding: EdgeInsets.only(top: 6),
         child: Text(
@@ -525,6 +542,21 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
         ),
       ),
     ],
+  );
+
+  // Model description: shown on the vehicle detail page.
+  Widget _noteField() => TextFormField(
+    controller: _note,
+    maxLines: 3,
+    onChanged: (_) => _noteEdited = true,
+    decoration: _dec('Model description').copyWith(
+      hintText:
+          'e.g. Reliable and fuel-efficient sedan, perfect for city drives.',
+      helperText:
+          'Shown on the vehicle page. Applies to every vehicle of this model.',
+      helperMaxLines: 2,
+      alignLabelWithHint: true,
+    ),
   );
 
   Widget _priceField(TextEditingController c, String label, String suffix) =>
@@ -552,12 +584,19 @@ class _VehicleFormDialogState extends State<VehicleFormDialog> {
               (m) => q.isEmpty || m.name.toLowerCase().contains(q),
             );
           },
-          onSelected: (_) => setState(_syncRates),
+          onSelected: (_) => setState(() {
+            _syncRates();
+            _noteEdited = false;
+            _note.text = _existingModel?.note ?? '';
+          }),
           fieldViewBuilder: (context, textCtrl, focus, onSubmit) {
             return TextFormField(
               controller: textCtrl,
               focusNode: focus,
-              onChanged: (_) => setState(() {}),
+              // while the note is untouched, follow the typed model's note
+              onChanged: (_) => setState(() {
+                if (!_noteEdited) _note.text = _existingModel?.note ?? '';
+              }),
               decoration: _dec('Model').copyWith(
                 hintText: 'Select or type model',
                 helperText: _isNewModel ? 'New model will be created' : null,

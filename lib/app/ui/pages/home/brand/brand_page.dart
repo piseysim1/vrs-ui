@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:vrs_ui/app/controllers/home_controller.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/footer_section.dart';
+import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar_widget.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/vehicle_card.dart';
 

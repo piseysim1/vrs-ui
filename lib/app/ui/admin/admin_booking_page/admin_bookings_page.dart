@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:vrs_ui/app/controllers/booking_controller.dart';
 import 'package:vrs_ui/app/data/models/booking_model.dart';
 import 'package:vrs_ui/app/ui/admin/admin_booking_page/admin_create_booking_page.dart';
+import 'package:vrs_ui/app/ui/admin/admin_booking_page/booking_view_dialog.dart';
+import 'package:vrs_ui/app/ui/admin/admin_booking_page/confirm_action_dialog.dart';
 
 class AdminBookingsPage extends GetView<BookingController> {
   const AdminBookingsPage({super.key});
@@ -52,8 +54,6 @@ class AdminBookingsPage extends GetView<BookingController> {
           const SizedBox(height: 16),
           _stats(),
           const SizedBox(height: 16),
-          // _sourceCard(),
-          const SizedBox(height: 16),
           _listCard(),
         ],
       ),
@@ -80,14 +80,14 @@ class AdminBookingsPage extends GetView<BookingController> {
       _stat(
         Icons.directions_car,
         Colors.amber.shade800,
-        'Active now',
+        'Active now (cars out)',
         '${controller.activeCount}',
         Colors.amber.shade800,
       ),
       _stat(
         Icons.schedule,
         const Color(0xFF2563EB),
-        'Upcoming',
+        'Confirmed (upcoming)',
         '${controller.upcomingCount}',
         const Color(0xFF2563EB),
       ),
@@ -153,59 +153,6 @@ class AdminBookingsPage extends GetView<BookingController> {
     );
   }
 
-  // Widget _sourceCard() => Obx(() {
-  //   final data = controller.bySource;
-  //   if (data.isEmpty) return const SizedBox.shrink();
-  //   final max = data.values.reduce((a, b) => a > b ? a : b);
-  //   return Container(
-  //     width: double.infinity,
-  //     padding: const EdgeInsets.all(18),
-  //     decoration: _box(),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         const Text(
-  //           'Bookings by source',
-  //           style: TextStyle(fontWeight: FontWeight.w700),
-  //         ),
-  //         const SizedBox(height: 12),
-  //         for (final e in data.entries)
-  //           Padding(
-  //             padding: const EdgeInsets.only(bottom: 8),
-  //             child: Row(
-  //               children: [
-  //                 SizedBox(
-  //                   width: 130,
-  //                   child: Text(
-  //                     e.key,
-  //                     overflow: TextOverflow.ellipsis,
-  //                     style: const TextStyle(fontSize: 12),
-  //                   ),
-  //                 ),
-  //                 Expanded(
-  //                   child: ClipRRect(
-  //                     borderRadius: BorderRadius.circular(6),
-  //                     child: LinearProgressIndicator(
-  //                       value: e.value / max,
-  //                       minHeight: 10,
-  //                       backgroundColor: const Color(0xFFEEF0F4),
-  //                       color: _primary,
-  //                     ),
-  //                   ),
-  //                 ),
-  //                 const SizedBox(width: 10),
-  //                 Text(
-  //                   '${e.value}',
-  //                   style: const TextStyle(fontWeight: FontWeight.w700),
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //       ],
-  //     ),
-  //   );
-  // });
-
   // ---------------- list ----------------
   Widget _listCard() => Container(
     decoration: _box(),
@@ -232,9 +179,9 @@ class AdminBookingsPage extends GetView<BookingController> {
             runSpacing: 8,
             children: [
               chip('all', 'All (${controller.totalCount})'),
-              chip('upcoming', 'Upcoming (${controller.upcomingCount})'),
-              chip('active', 'Active (${controller.activeCount})'),
-              chip('completed', 'Completed (${controller.completedCount})'),
+              chip('pending', 'Pending (${controller.pendingCount})'),
+              chip('approved', 'Approved (${controller.approvedCount})'),
+              chip('rejected', 'Rejected (${controller.rejectedCount})'),
             ],
           );
         }),
@@ -306,7 +253,7 @@ class AdminBookingsPage extends GetView<BookingController> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 980),
+            constraints: const BoxConstraints(minWidth: 1100),
             child: DataTable(
               headingRowColor: WidgetStateProperty.all(const Color(0xFFF7F8FA)),
               headingTextStyle: TextStyle(
@@ -315,15 +262,14 @@ class AdminBookingsPage extends GetView<BookingController> {
                 letterSpacing: 0.6,
                 color: Colors.grey.shade600,
               ),
-              dataRowMinHeight: 58,
-              dataRowMaxHeight: 58,
+              dataRowMinHeight: 78,
+              dataRowMaxHeight: 78,
               columns: const [
-                DataColumn(label: Text('BOOKING NO')),
+                DataColumn(label: Text('BOOKING ID')),
                 DataColumn(label: Text('CUSTOMER')),
-                DataColumn(label: Text('SOURCE')),
-                DataColumn(label: Text('START')),
-                DataColumn(label: Text('END')),
-                DataColumn(label: Text('TOTAL')),
+                DataColumn(label: Text('ASSIGNED VEHICLE')),
+                DataColumn(label: Text('RENTAL DATES')),
+                DataColumn(label: Text('AMOUNT')),
                 DataColumn(label: Text('STATUS')),
                 DataColumn(label: Text('ACTIONS')),
               ],
@@ -364,112 +310,247 @@ class AdminBookingsPage extends GetView<BookingController> {
     );
   });
 
-  DataRow _row(BookingModel b) => DataRow(
-    cells: [
-      DataCell(
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEAF0FF),
-            borderRadius: BorderRadius.circular(6),
+  DataRow _row(BookingModel b) {
+    final cars = controller.vehiclesOf(b);
+    final car = cars.isEmpty ? null : cars.first;
+    final email = controller.emailOf(b.userId);
+
+    String overdueText() {
+      final d = DateTime.now().difference(b.endDate!);
+      return d.inDays >= 1 ? 'Overdue ${d.inDays}d' : 'Overdue ${d.inHours}h';
+    }
+
+    return DataRow(
+      cells: [
+        DataCell(
+          Text(
+            '#${b.bookingNo}',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
           ),
-          child: Text(
-            b.bookingNo,
-            style: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
         ),
-      ),
-      DataCell(
-        Text(
-          b.username,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-        ),
-      ),
-      DataCell(
-        Text(
-          b.businessSourceName.isEmpty ? '—' : b.businessSourceName,
-          style: const TextStyle(fontSize: 12),
-        ),
-      ),
-      DataCell(
-        Text(fmtDate(b.startDate), style: const TextStyle(fontSize: 12)),
-      ),
-      DataCell(Text(fmtDate(b.endDate), style: const TextStyle(fontSize: 12))),
-      DataCell(
-        Text(
-          '\$${b.total.toStringAsFixed(2)}',
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-        ),
-      ),
-      DataCell(_statePill(b.state)),
-      DataCell(
-        Row(
-          children: [
-            // TextButton.icon(
-            //   onPressed: () => Get.to(() => const AdminCreateBookingPage()),
-            //   icon: const Icon(Icons.visibility_outlined, size: 15),
-            //   label: const Text('View'),
-            //   style: TextButton.styleFrom(foregroundColor: _primary),
-            // ),
-            IconButton(
-              tooltip: 'Delete',
-              icon: const Icon(
-                Icons.delete_outline,
-                size: 18,
-                color: Colors.red,
+
+        // customer
+        DataCell(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                b.username,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
-              onPressed: () => _confirmDelete(b),
-            ),
-          ],
+              if (email.isNotEmpty)
+                Text(
+                  email,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+            ],
+          ),
         ),
-      ),
-    ],
+
+        // vehicle
+        DataCell(
+          car == null
+              ? Text('—', style: TextStyle(color: Colors.grey.shade500))
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          car.displayName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F3F7),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            car.brandName,
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                        ),
+                        if (cars.length > 1)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: Text(
+                              '+${cars.length - 1}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    Text(
+                      car.licensePlate,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+
+        // dates
+        DataCell(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${fmtShort(b.startDate)} – ${fmtShort(b.endDate)}, ${b.endDate?.year ?? ''}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '${b.days} day${b.days > 1 ? 's' : ''}',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              ),
+              if (b.isOverdue && b.endDate != null)
+                Text(
+                  overdueText(),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFFD97706),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        DataCell(
+          Text(
+            '\$${b.total.toStringAsFixed(2)}',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          ),
+        ),
+
+        DataCell(_statusPill(b)),
+
+        DataCell(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextButton(
+                onPressed: () => Get.dialog(BookingViewDialog(booking: b)),
+                child: const Text('View'),
+              ),
+              if (b.approval == Approval.pending) ...[
+                _actionBtn(
+                  'Approve',
+                  const Color(0xFF1E9E5A),
+                  () => _confirmStatus(b, 'Approved'),
+                ),
+                _actionBtn(
+                  'Reject',
+                  const Color(0xFFDC3545),
+                  () => _confirmStatus(b, 'Rejected'),
+                ),
+              ],
+              if (b.approval == Approval.approved && !b.isReturned)
+                _actionBtn(
+                  'Return',
+                  _primary,
+                  () => _confirmStatus(b, 'Completed'),
+                ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_horiz, size: 18),
+                onSelected: (v) {
+                  if (v == 'delete') _confirmDelete(b);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _actionBtn(String t, Color c, VoidCallback f) => TextButton(
+    onPressed: f,
+    child: Text(
+      t,
+      style: TextStyle(color: c, fontWeight: FontWeight.w700),
+    ),
   );
 
-  Widget _statePill(BookingState s) {
+  Widget _statusPill(BookingModel b) {
     late Color fg, bg;
     late String t;
-    switch (s) {
-      case BookingState.upcoming:
-        fg = const Color(0xFF2563EB);
-        bg = const Color(0xFFE8F0FE);
-        t = 'UPCOMING';
-        break;
-      case BookingState.active:
-        fg = const Color(0xFFD97706);
-        bg = const Color(0xFFFFF4E0);
-        t = 'ACTIVE';
-        break;
-      case BookingState.completed:
-        fg = const Color(0xFF1E9E5A);
-        bg = const Color(0xFFE6F7EE);
-        t = 'COMPLETED';
-        break;
+    if (b.approval == Approval.rejected) {
+      fg = const Color(0xFFDC3545);
+      bg = const Color(0xFFFDECEE);
+      t = 'Rejected';
+    } else if (b.approval == Approval.pending) {
+      fg = const Color(0xFFD97706);
+      bg = const Color(0xFFFFF4E0);
+      t = 'Pending';
+    } else if (b.isReturned) {
+      fg = Colors.grey.shade700;
+      bg = const Color(0xFFF1F3F7);
+      t = 'Completed';
+    } else if (b.isOverdue) {
+      fg = const Color(0xFFB45309);
+      bg = const Color(0xFFFEF3C7);
+      t = 'Pending Return';
+    } else if (b.isRunning) {
+      fg = const Color(0xFF1E9E5A);
+      bg = const Color(0xFFE6F7EE);
+      t = 'Active';
+    } else {
+      fg = const Color(0xFF2563EB);
+      bg = const Color(0xFFE8F0FE);
+      t = 'Confirmed';
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.circle, size: 6, color: fg),
-          const SizedBox(width: 5),
-          Text(
-            t,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: fg,
-            ),
-          ),
-        ],
+      child: Text(
+        t,
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg),
+      ),
+    );
+  }
+
+  void _confirmStatus(BookingModel b, String name) {
+    final cars = controller.vehiclesOf(b);
+    Get.dialog(
+      ConfirmActionDialog(
+        booking: b,
+        carName: cars.isEmpty
+            ? null
+            : '${cars.first.displayName} (${cars.first.licensePlate})',
+        action: name == 'Approved'
+            ? BookingAction.approve
+            : name == 'Rejected'
+            ? BookingAction.reject
+            : BookingAction.complete,
+        onConfirm: () => controller.setStatus(b, name),
       ),
     );
   }

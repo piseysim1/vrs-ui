@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 class AuthService {
   AuthService._();
   static final _box = GetStorage();
-
+  static final avatar = RxnString();
   static const _all = <String>{
     'vehicle.view',
     'vehicle.create',
@@ -17,6 +18,18 @@ class AuthService {
     'administrator': _all,
     'superadmin': _all,
   };
+  static String? get savedAvatar {
+    final id = userId;
+    if (id == null) return null;
+    final v = _box.read('avatar_$id');
+    return (v == null || v.toString().isEmpty) ? null : v.toString();
+  }
+
+  static void setAvatar(String url) {
+    final id = userId;
+    if (id != null) _box.write('avatar_$id', url);
+    avatar.value = url;
+  }
 
   static String? get token {
     final t = _box.read('token');
@@ -37,13 +50,14 @@ class AuthService {
       return {};
     }
   }
+
   static int? get userId {
-  final v = _payload()['uid'];
-  final fromToken = v is int ? v : int.tryParse('$v');
-  if (fromToken != null) return fromToken;
-  final saved = _box.read('userId');
-  return saved is int ? saved : int.tryParse('$saved');
-}
+    final v = _payload()['uid'];
+    final fromToken = v is int ? v : int.tryParse('$v');
+    if (fromToken != null) return fromToken;
+    final saved = _box.read('userId');
+    return saved is int ? saved : int.tryParse('$saved');
+  }
 
   static Map<String, dynamic> get debugClaims => _payload();
   static List<String> get roles {

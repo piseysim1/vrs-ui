@@ -76,6 +76,17 @@ class AdminProvider extends GetConnect {
     return last!;
   }
 
+  Future<Response> changeBookingStatus(int id, int statusId) =>
+      put('/vrms/api/booking/status', {'id': id, 'statusId': statusId});
+
+  Future<Response> getBooking(int id) async {
+    final r = await get('/vrms/api/booking/id', query: {'id': '$id'});
+    if (r.statusCode == 200) return r;
+    return get('/vrms/api/booking/$id');
+  }
+
+  Future<Response> updateUser(int id, Map<String, dynamic> b) =>
+      put('/vrms/api/user/id', b, query: {'id': '$id'});
   // ---------- lookup items ----------
   /// There is no "list lookup items" endpoint, only GET /lookupitem/{id}.
   Future<List<OptionItem>> fetchLookupItems({int maxId = 30}) async {

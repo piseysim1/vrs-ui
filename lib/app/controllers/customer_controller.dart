@@ -32,7 +32,6 @@ class CustomerController extends GetxController {
     return [];
   }
 
-  // ---------- fetch ----------
   Future<void> load() async {
     try {
       isLoading.value = true;
@@ -46,8 +45,6 @@ class CustomerController extends GetxController {
           .map((e) => CustomerModel.fromJson(Map<String, dynamic>.from(e)))
           .toList();
       print('USERS loaded: ${all.length}');
-
-      // only show customers (users that have no roleId are kept)
       customers.value = all
           .where((u) => u.roleId == null || u.roleId == kCustomerRoleId)
           .toList();
@@ -60,7 +57,6 @@ class CustomerController extends GetxController {
     }
   }
 
-  // ---------- search + pagination ----------
   List<CustomerModel> get filtered {
     final q = search.value.trim().toLowerCase();
     if (q.isEmpty) return customers.toList();

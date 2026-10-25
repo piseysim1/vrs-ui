@@ -10,6 +10,7 @@ class RegisterController extends GetxController {
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
+
   final isPasswordObscured = true.obs;
   var agreeToTerms = false.obs;
   var isLoading = false.obs;
@@ -22,11 +23,46 @@ class RegisterController extends GetxController {
     agreeToTerms.value = value ?? false;
   }
 
+  // --- Helper Methods for Custom Snackbars ---
+  void _showErrorSnackbar(String title, String message) {
+    Get.snackbar(
+      title,
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red.shade600,
+      colorText: Colors.white,
+      borderRadius: 12,
+      margin: const EdgeInsets.all(16),
+      icon: const Icon(Icons.error_outline, color: Colors.white),
+      duration: const Duration(seconds: 3),
+      isDismissible: true,
+      forwardAnimationCurve: Curves.easeOutBack,
+    );
+  }
+
+  void _showSuccessSnackbar(String title, String message) {
+    Get.snackbar(
+      title,
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green.shade600,
+      colorText: Colors.white,
+      borderRadius: 12,
+      margin: const EdgeInsets.all(16),
+      icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+      duration: const Duration(seconds: 3),
+      isDismissible: true,
+      forwardAnimationCurve: Curves.easeOutBack,
+    );
+  }
+  // -------------------------------------------
+
   Future<void> register() async {
     if (!agreeToTerms.value) {
-      Get.snackbar('Error', 'Please accept the Terms & Conditions');
+      _showErrorSnackbar('Error', 'Please accept the Terms & Conditions');
       return;
     }
+
     isLoading.value = true;
     final Map payload = {
       'username': userNameController.text.trim(),
@@ -42,20 +78,21 @@ class RegisterController extends GetxController {
       final isSuccess =
           response.statusCode == 200 ||
           (response.body != null && response.body['statusCode'] == 200);
+
       if (isSuccess) {
         final successMsg =
             response.body?['result'] ?? 'Registered successfully';
-        Get.snackbar('Success', successMsg);
+        _showSuccessSnackbar('Success', successMsg);
         Get.offAllNamed('/login');
       } else {
         final errorMsg =
             response.body?['message'] ??
             response.statusText ??
             'Registration failed';
-        Get.snackbar('Registration Failed', errorMsg);
+        _showErrorSnackbar('Registration Failed', errorMsg);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to create account');
+      _showErrorSnackbar('Error', 'Failed to create account');
     } finally {
       isLoading.value = false;
     }
