@@ -10,12 +10,11 @@ class MyBookingsPage extends GetView<MyBookingsController> {
   const MyBookingsPage({super.key});
 
   static const _primary = Color(0xFF003399);
-  static const _phone = '048896522'; // TODO: your real support number
+  static const _phone = '048896522';
 
   @override
   Widget build(BuildContext context) {
     final narrow = MediaQuery.of(context).size.width < 700;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: const NavbarWidget(),
@@ -79,7 +78,6 @@ class MyBookingsPage extends GetView<MyBookingsController> {
     );
   }
 
-  // ---------------- header + chips ----------------
   Widget _header(String f) {
     final confirmed = f == 'confirmed';
     return Row(

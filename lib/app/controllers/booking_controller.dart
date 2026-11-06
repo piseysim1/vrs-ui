@@ -178,7 +178,7 @@ class BookingController extends GetxController {
   }
 
   void setSearch(String v) {
-    search.value = v;
+    search.value = v;     
     page.value = 0;
   }
 
@@ -285,7 +285,7 @@ class BookingController extends GetxController {
   }
 
   // ---------------- create ----------------
-  
+
   String _nextNo() {
     var max = 0;
     for (final b in bookings) {
