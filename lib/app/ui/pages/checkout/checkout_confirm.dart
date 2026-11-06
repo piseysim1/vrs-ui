@@ -4,8 +4,6 @@ import 'package:get/get.dart';
 import 'package:vrs_ui/app/core/utils/image_url.dart';
 import 'package:vrs_ui/app/data/models/booking_summary_model.dart';
 import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar.dart';
-import 'package:vrs_ui/app/ui/pages/home/home_widget/navbar_widget.dart';
-
 const kMyBookingsRoute = '/my-bookings';
 
 const _primary = Color(0xFF003399);

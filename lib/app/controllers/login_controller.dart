@@ -13,11 +13,18 @@ class LoginController extends GetxController {
 
   final _box = GetStorage();
 
-  final usernameController = TextEditingController();
-  final passwordController = TextEditingController();
+  late final TextEditingController usernameController;
+  late final TextEditingController passwordController;
 
   var isPasswordObscured = true.obs;
   var isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    usernameController = TextEditingController();
+    passwordController = TextEditingController();
+  }
 
   void togglePasswordVisibility() {
     isPasswordObscured.value = !isPasswordObscured.value;
@@ -31,13 +38,13 @@ class LoginController extends GetxController {
     required Color iconColor,
     required Color iconBgColor,
   }) {
+    if (isClosed) return;
     Get.snackbar(
       '',
       '',
       snackPosition: SnackPosition.TOP,
       backgroundColor: const Color(0xFFFFFFFF),
-      titleText:
-          const SizedBox.shrink(), // Hides default title to use custom layout
+      titleText: const SizedBox.shrink(),
       messageText: Row(
         children: [
           Container(
@@ -86,9 +93,10 @@ class LoginController extends GetxController {
       ],
     );
   }
-  // ---------------------------------------
 
   Future<void> login() async {
+    if (isLoading.value) return;
+
     final username = usernameController.text.trim();
     final password = passwordController.text.trim();
 
@@ -97,8 +105,8 @@ class LoginController extends GetxController {
         title: 'Error',
         message: 'Please fill in all fields',
         icon: Icons.error_outline_rounded,
-        iconColor: const Color(0xFFDC2626), // Red
-        iconBgColor: const Color(0xFFFEE2E2), // Soft Red
+        iconColor: const Color(0xFFDC2626),
+        iconBgColor: const Color(0xFFFEE2E2),
       );
       return;
     }
@@ -109,6 +117,8 @@ class LoginController extends GetxController {
         'username': username,
         'password': password,
       });
+
+      if (isClosed) return;
 
       final body = response.body;
       final isSuccess =
@@ -129,16 +139,16 @@ class LoginController extends GetxController {
         if (refresh != null) {
           await _box.write('refreshToken', refresh);
         }
-        // Fetch user info and role
         await _loadRole(access, username);
 
-        // Success Snackbar
+        if (isClosed) return;
+
         _showCustomSnackbar(
           title: 'Success',
           message: 'Welcome back! Successfully logged in.',
           icon: Icons.verified_rounded,
-          iconColor: const Color(0xFF0284C7), // Blue
-          iconBgColor: const Color(0xFFE0F2FE), // Soft Blue
+          iconColor: const Color(0xFF0284C7),
+          iconBgColor: const Color(0xFFE0F2FE),
         );
 
         final bool hasPermission = AuthService.can('vehicle.view');
@@ -149,36 +159,36 @@ class LoginController extends GetxController {
             response.statusText ??
             'Login failed';
 
-        // Failure Snackbar
         _showCustomSnackbar(
           title: 'Login Failed',
           message: errorMsg.toString(),
           icon: Icons.error_outline_rounded,
-          iconColor: const Color(0xFFDC2626), // Red
-          iconBgColor: const Color(0xFFFEE2E2), // Soft Red
+          iconColor: const Color(0xFFDC2626),
+          iconBgColor: const Color(0xFFFEE2E2),
         );
       }
     } catch (e) {
-      // Connection/Catch Error Snackbar
+      if (isClosed) return;
       _showCustomSnackbar(
         title: 'Error',
         message: 'Failed to connect: ${e.toString()}',
         icon: Icons.wifi_off_rounded,
-        iconColor: const Color(0xFFD97706), // Amber
-        iconBgColor: const Color(0xFFFEF3C7), // Soft Amber
+        iconColor: const Color(0xFFD97706),
+        iconBgColor: const Color(0xFFFEF3C7),
       );
     } finally {
-      isLoading.value = false;
+      if (!isClosed) {
+        isLoading.value = false;
+      }
     }
   }
 
   Future<void> _loadRole(String token, String username) async {
-    await _box.write('role', 'user'); // safe default
+    await _box.write('role', 'user');
     try {
       final res = await userProvider.getUsers(token);
-      print('USER LIST status=${res.statusCode}');
-      print('USER LIST body=${res.body}');
-      if (res.statusCode != 200 || res.body == null) return;
+      if (isClosed || res.statusCode != 200 || res.body == null) return;
+      
       dynamic bodyData = res.body;
       List list = [];
 
@@ -195,11 +205,9 @@ class LoginController extends GetxController {
         if (rawList is List) {
           list = rawList;
         } else {
-          list = bodyData.values.whereType<Map>().toList();
+          list = bodyData.values.whereType().toList();
         }
       }
-
-      print('USERS FOUND count: ${list.length}');
 
       final me = list.firstWhereOrNull(
         (u) =>
@@ -209,9 +217,8 @@ class LoginController extends GetxController {
                 u['userName']?.toString().toLowerCase() ==
                     username.toLowerCase()),
       );
-      print('ME: $me');
 
-      if (me != null && me is Map) {
+      if (me != null && me is Map && !isClosed) {
         final roleName = me['roleName'] ?? me['role'] ?? me['roleNames'];
         await _box.write(
           'role',
@@ -225,7 +232,6 @@ class LoginController extends GetxController {
     } catch (e) {
       print('ROLE LOOKUP FAILED: $e');
     }
-    print('ROLES AFTER LOGIN: ${AuthService.roles}');
   }
 
   void navigateToForgotPassword() => Get.toNamed('/forgot-password');
